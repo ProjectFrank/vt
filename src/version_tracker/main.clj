@@ -1,15 +1,19 @@
 (ns version-tracker.main
   (:require [com.stuartsierra.component :as component]
             [version-tracker
-             [server :as server]
-             [handler :as handler]])
+             [config :as config]
+             [handler :as handler]
+             [server :as server]])
   (:gen-class))
 
-(defn system []
+(defn system [config]
   (component/system-map
-   :server (component/using (server/new 3000)
-                            [:handler])
+   :server (component/using
+            (server/new
+             (get-in config [:webserver :port]))
+            [:handler])
    :handler handler/app))
 
 (defn -main [& _args]
-  (component/start (system)))
+  (let [config (config/load-config)]
+    (component/start (system config))))

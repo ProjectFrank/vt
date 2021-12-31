@@ -3,7 +3,16 @@
             [clojure.java.io :as io]
             [schema.core :as s]))
 
-(s/def Config {:webserver {:port s/Num}})
+(s/def Postgres
+  {:host s/Str
+   :port s/Int
+   :database s/Str
+   :user s/Str
+   :password s/Str})
+
+(s/def Config
+  {:webserver {:port s/Num}
+   :postgres Postgres})
 
 (defn load-config []
   (let [config (aero/read-config (io/resource "config.edn"))]

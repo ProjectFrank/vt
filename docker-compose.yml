@@ -6,7 +6,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_DB: vt
-      POSTGRES_PASSWORD: vt
+      POSTGRES_PASSWORD: password
       POSTGRES_USER: vt
   flyway:
     image: flyway/flyway:8.3
@@ -14,7 +14,7 @@ services:
     environment:
       DATABASE_HOST: postgres
       DATABASE_USER: vt
-      DATABASE_PASSWORD: vt
+      DATABASE_PASSWORD: password
       DATABASE_NAME: vt
     depends_on:
       - postgres

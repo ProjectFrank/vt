@@ -1,17 +1,19 @@
 (ns version-tracker.main
   (:require [com.stuartsierra.component :as component]
-            [version-tracker
-             [config :as config]
-             [handler :as handler]
-             [server :as server]])
+            [schema.core :as s]
+            [version-tracker.config :as config]
+            [version-tracker.handler :as handler]
+            [version-tracker.server :as server]
+            [version-tracker.storage.sql :as sql])
   (:gen-class))
 
-(defn system [config]
+(s/defn system [config :- config/Config]
   (component/system-map
    :server (component/using
             (server/new
              (get-in config [:webserver :port]))
             [:handler])
+   :storage (sql/postgres-storage (:postgres config))
    :handler handler/app))
 
 (defn -main [& _args]

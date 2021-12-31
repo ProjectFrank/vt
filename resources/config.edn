@@ -1,2 +1,8 @@
 {:webserver
- {:port #long #or [#env PORT 3000]}}
+ {:port #long #or [#env PORT 3000]}
+ :postgres
+ {:host #or [#env DB_HOST "localhost"]
+  :port #long #or [#env DB_PORT 5432]
+  :database #or [#env DB_DATABASE "vt"]
+  :user #or [#env DB_USER "vt"]
+  :password #or [#env DB_PASSWORD "password"]}}

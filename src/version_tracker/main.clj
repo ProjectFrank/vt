@@ -9,10 +9,11 @@
 
 (s/defn system [config :- config/Config]
   (component/system-map
+   :config config
    :server (component/using
             (server/new
              (get-in config [:webserver :port]))
-            [:handler])
+            [:handler :storage])
    :storage (sql/postgres-storage (:postgres config))
    :handler handler/app))
 

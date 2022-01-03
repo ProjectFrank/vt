@@ -15,8 +15,10 @@
                  [org.postgresql/postgresql "42.3.1"]
                  [prismatic/schema "1.2.0"]
                  [ring "1.9.4"]
-                 [ring/ring-defaults "0.3.2"]]
+                 [ring/ring-defaults "0.3.2"]
+                 [ring-basic-authentication "1.1.1"]]
   :main version-tracker.main
   :plugins []
   :profiles
-  {:dev {:dependencies [[ring/ring-mock "0.3.2"]]}})
+  {:dev {:dependencies [[ring/ring-mock "0.3.2"]]
+         :source-paths ["src" "test"]}})

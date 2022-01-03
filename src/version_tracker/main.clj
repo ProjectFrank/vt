@@ -15,7 +15,7 @@
              (get-in config [:webserver :port]))
             [:handler :storage])
    :storage (sql/postgres-storage (:postgres config))
-   :handler handler/app))
+   :handler (handler/app)))
 
 (defn -main [& _args]
   (let [config (config/load-config)]

@@ -1,21 +1,44 @@
 (ns version-tracker.handler
-  (:require [reitit.ring :as router]
+  (:require [reitit.middleware :as middleware]
+            [reitit.ring :as router]
+            [ring.middleware.basic-authentication :as ring-basic]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
-            [version-tracker.handler.signup :as signup]))
+            [schema.core :as s]
+            [version-tracker.handler.signup :as signup]
+            [version-tracker.model.user :as user]
+            [version-tracker.storage :as storage]))
 
-(defn handle-hello [_]
-  {:status 200 :body "Hello World" :headers {"Content-Type" "text/html"}})
+(defn handle-hello [request]
+  (let [{:keys [::user/username]} (:basic-authentication request)]
+    {:status 200 :body (format "Hello %s" username)
+     :headers {"Content-Type" "text/html"}}))
 
-(def router (router/router
-             [["/" {:get handle-hello}]
-              ["/users" {:post signup/handle-signup}]]))
+(defn wrap-basic-authentication
+  "Adds basic authentication. Requires storage/wrap-storage as an outer
+  layer the middleware stack."
+  [handler]
+  ;; adapter necessary to make wrap-basic-authentication work with
+  ;; injecting dependencies in the request.
+  (fn [request]
+    (let [storage (storage/storage request)
+          wrapped-handler (ring-basic/wrap-basic-authentication handler
+                                                                (partial user/authenticate-user storage))]
+      (wrapped-handler request))))
+
+(s/defn router []
+  (router/router
+   [["/" {:get (wrap-basic-authentication handle-hello)}]
+    ["/users" {:post signup/handle-signup}]]))
 
 (def default-handler (router/create-default-handler
                       {:not-found (constantly {:status 404 :body "Not Found"})}))
 
-(def handler (router/ring-handler router default-handler))
+(defn handler []
+  (router/ring-handler (router) default-handler))
 
-(defn wrap-print-exceptions [handler]
+(defn wrap-print-exceptions
+  "Prints exceptions thrown by handler. Useful for debugging tests."
+  [handler]
   (fn [request]
     (try
       (handler request)
@@ -23,6 +46,7 @@
         (println e)
         (throw e)))))
 
-(def app (-> handler
-             wrap-print-exceptions
-             (wrap-defaults api-defaults)))
+(defn app []
+  (-> (handler)
+      wrap-print-exceptions
+      (wrap-defaults api-defaults)))

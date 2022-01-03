@@ -4,6 +4,7 @@
             [clojure.data.json :as json]
             [clojure.java.jdbc :as jdbc]
             [clojure.test :refer [deftest is testing use-fixtures]]
+            [version-tracker.model.user :as user]
             [version-tracker.test-utils :as test-utils]))
 
 (use-fixtures :once test-utils/schema-validation-fixture)
@@ -14,10 +15,18 @@
 
 (deftest hello-test
   (test-utils/with-system system
-    (let [url (str (base-url system) "/")
-          resp (http/get url)]
-      (is (= "Hello World" (:body resp)))
-      (is (= 200 (:status resp))))))
+    (testing "authenticated"
+      (let [username "foo"
+            password "bar"
+            _ (user/create-user! (:storage system) "foo" "bar")
+            url (str (base-url system) "/")
+            resp (http/get url {:basic-auth [username password]})]
+        (is (= "Hello foo" (:body resp)))
+        (is (= 200 (:status resp)))))
+    (testing "unauthenticated"
+      (let [url (str (base-url system) "/")
+            resp (http/get url {:throw-exceptions false})]
+        (is (= 401 (:status resp)))))))
 
 (deftest signup-test
   (test-utils/with-system system
@@ -40,3 +49,9 @@
                                   :content-type :json
                                   :throw-exceptions false})]
          (is (= 400 (:status resp))))))))
+
+(deftest not-found-test
+  (test-utils/with-system system
+    (let [url (str (base-url system) "/invalid")
+          resp (http/get url {:throw-exceptions false})]
+      (is (= 404 (:status resp))))))

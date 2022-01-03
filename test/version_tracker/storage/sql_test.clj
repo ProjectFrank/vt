@@ -8,7 +8,7 @@
 
 (deftest create-user
   (test-utils/with-sql-storage storage
-    (is (= 1 (storage/create-user storage "foo" "bar")))
+    (is (nil? (storage/create-user! storage "foo" "bar")))
     (let [users (jdbc/query storage
                             ["SELECT username, password_hash FROM users WHERE username=?" "foo"])]
       (is (= [{:username "foo" :password_hash "bar"}]

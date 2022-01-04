@@ -11,6 +11,7 @@
 (declare create-user*)
 (declare count-users*)
 (declare find-user*)
+(declare count-tracked-repo-by-github-id*)
 
 (hugsql/def-db-fns (io/resource "queries.sql"))
 
@@ -26,6 +27,12 @@
     (if-let [result (find-user* this {:username username})]
       (rename-keys result {:password_hash :password-hash})
       nil))
+  (-add-tracked-repo [this user-id github-id]
+    (when (= 0 (:count (count-tracked-repo-by-github-id* this {:user-id user-id
+                                                               :github-id github-id})))
+     (add-tracked-repo* this {:user-id user-id, :github-id github-id}))
+    nil)
+
   component/Lifecycle
   (start [this]
     (let [datasource (cp/make-datasource {:server-name (:host config)

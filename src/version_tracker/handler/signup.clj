@@ -1,6 +1,5 @@
 (ns version-tracker.handler.signup
-  (:require [clojure.data.json :as json]
-            [schema.core :as s]
+  (:require [schema.core :as s]
             [version-tracker.model.user :as user]
             [version-tracker.storage :as storage]))
 
@@ -8,10 +7,10 @@
   {:username (s/constrained s/Str #(< (count %) 72))
    :password (s/constrained s/Str #(< (count %) 72))})
 
-(defn handle-signup [request]
+(defn handler [{:keys [json-params] :as request}]
   (let [storage (storage/storage request)
-        {:keys [username password] :as payload} (json/read-str (slurp (:body request)) :key-fn keyword)
-        valid? (not (s/check SignupRequest payload))]
+        {:keys [username password]} json-params
+        valid? (not (s/check SignupRequest json-params))]
     (if-not valid?
       {:status 400}
       (let [result (user/create-user! storage username password)]

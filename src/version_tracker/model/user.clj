@@ -1,11 +1,14 @@
 (ns version-tracker.model.user
   (:require [buddy.hashers :as hashers]
             [schema.core :as s]
+            [version-tracker.release-client :as release-client]
             [version-tracker.storage :as storage])
   (:import [java.util UUID]))
 
+(s/def Id s/Uuid)
+
 (s/def User
-  {::id s/Uuid
+  {::id Id
    ::username s/Str})
 
 (s/defn ^:private password-hash :- s/Str
@@ -32,3 +35,15 @@
     (if password-correct?
       {::id id, ::username username}
       nil)))
+
+(s/defn track-repo :- (s/enum ::tracked ::repo-not-found)
+  [storage :- (s/protocol storage/Storage)
+   release-client :- (s/protocol release-client/ReleaseClient)
+   user-id :- Id
+   owner :- s/Str
+   repo-name :- s/Str]
+  (if-let [repo-id (release-client/get-repo-id release-client owner repo-name)]
+    (do
+      (storage/add-tracked-repo storage user-id repo-id)
+      ::tracked)
+    ::repo-not-found))

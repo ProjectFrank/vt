@@ -10,11 +10,16 @@
    :user s/Str
    :password s/Str})
 
+(s/def GitHub
+  {:base-url s/Str
+   :token s/Str})
+
 (s/def Config
   {:webserver {:port s/Num}
-   :postgres Postgres})
+   :postgres Postgres
+   :github GitHub})
 
-(defn load-config []
-  (let [config (aero/read-config (io/resource "config.edn"))]
+(defn load-config [& [{:keys [profile]}]]
+  (let [config (aero/read-config (io/resource "config.edn") {:profile profile})]
     (s/validate Config config)
     config))

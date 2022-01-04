@@ -1,10 +1,11 @@
 (ns version-tracker.handler
-  (:require [reitit.middleware :as middleware]
-            [reitit.ring :as router]
+  (:require [reitit.ring :as router]
             [ring.middleware.basic-authentication :as ring-basic]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
+            [ring.middleware.json :as json]
             [schema.core :as s]
             [version-tracker.handler.signup :as signup]
+            [version-tracker.handler.track-repo :as track-repo]
             [version-tracker.model.user :as user]
             [version-tracker.storage :as storage]))
 
@@ -28,8 +29,8 @@
 (s/defn router []
   (router/router
    [["/" {:get (wrap-basic-authentication handle-hello)}]
-    ["/users" {:post signup/handle-signup}]]))
-
+    ["/users" {:post signup/handler}]
+    ["/repos" {:post (wrap-basic-authentication track-repo/handler)}]]))
 (def default-handler (router/create-default-handler
                       {:not-found (constantly {:status 404 :body "Not Found"})}))
 
@@ -49,4 +50,6 @@
 (defn app []
   (-> (handler)
       wrap-print-exceptions
+      json/wrap-json-response
+      (json/wrap-json-params {:key-fn keyword})
       (wrap-defaults api-defaults)))

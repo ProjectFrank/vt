@@ -11,7 +11,8 @@
 (defprotocol Storage
   (-create-user [_this username password-hash])
   (-user-exists? [_this username])
-  (-find-user [_this username]))
+  (-find-user [_this username])
+  (-add-tracked-repo [_this user-id github-id]))
 
 (s/def Store (s/protocol Storage))
 
@@ -26,8 +27,15 @@
    username :- s/Str]
   (-user-exists? store username))
 
-(s/defn find-user :- {:id s/Uuid
-                      :password-hash s/Str}
+(s/defn find-user :- (s/maybe {:id s/Uuid
+                               :username s/Str
+                               :password-hash s/Str})
   [store :- Store
    username :- s/Str]
   (-find-user store username))
+
+(s/defn add-tracked-repo :- (s/eq nil)
+  [store :- Store
+   user-id :- s/Uuid
+   github-id :- s/Str]
+  (-add-tracked-repo store user-id github-id))

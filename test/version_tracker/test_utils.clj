@@ -3,6 +3,7 @@
             [com.stuartsierra.component :as component]
             [schema.core :as s]
             [version-tracker.config :as config]
+            [version-tracker.fakes.fake-github :as fake-github]
             [version-tracker.main :as main]
             [version-tracker.storage.sql :as sql]))
 
@@ -26,20 +27,21 @@
       (finally
         (component/stop sql-storage#)))))
 
-(defrecord RollbackStorage [sql-storage]
-  component/Lifecycle
-  (start [this]
-    (component/start sql-storage))
-  (stop [this]))
-
 (defmacro with-system
   "Runs body in context of system bound to sys-sym. Database transactions are rolled back, not committed."
   [sys-sym & body]
   `(with-sql-storage tx#
-     (let [~sys-sym (-> (main/system (config/load-config))
+     (let [config# (config/load-config {:profile :test})
+           github-token# (get-in config# [:github :token])
+           fake-github# (fake-github/start {:port 3001, :token github-token#})
+           config#  (assoc-in config#
+                             [:github :base-url]
+                             (:base-url fake-github#))
+           ~sys-sym (-> (main/system config#)
                         (assoc :storage tx#)
                         component/start)]
        (try
          ~@body
          (finally
-           (component/stop ~sys-sym))))))
+           (component/stop ~sys-sym)
+           (fake-github/stop (:server fake-github#)))))))

@@ -1,12 +1,15 @@
 (ns version-tracker.server
   (:require [com.stuartsierra.component :as component]
             [ring.adapter.jetty :refer [run-jetty]]
+            [version-tracker.release-client :as release-client]
             [version-tracker.storage :as storage]))
 
-(defrecord Server [handler storage port]
+(defrecord Server [handler release-client storage port]
   component/Lifecycle
   (start [this]
-    (assoc this :server (run-jetty (storage/wrap-storage handler storage)
+    (assoc this :server (run-jetty (-> handler
+                                       (storage/wrap-storage storage)
+                                       (release-client/wrap-release-client release-client))
                                    {:port port
                                     :join? false})))
   (stop [this]

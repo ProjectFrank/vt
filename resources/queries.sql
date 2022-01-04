@@ -11,6 +11,15 @@ WHERE username=:username
 
 -- :name find-user* :? :1
 -- :doc Find user with given username
-SELECT id, password_hash
+SELECT id, username, password_hash
 FROM users
 WHERE username=:username
+
+-- :name add-tracked-repo* :! :n
+INSERT INTO tracked_repos (user_id, github_id)
+VALUES (:user-id, :github-id)
+
+-- :name count-tracked-repo-by-github-id* :? :1
+SELECT COUNT(*) as count
+FROM tracked_repos
+WHERE github_id=:github-id AND user_id=:user-id

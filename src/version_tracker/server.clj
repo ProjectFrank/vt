@@ -2,9 +2,10 @@
   (:require [com.stuartsierra.component :as component]
             [ring.adapter.jetty :refer [run-jetty]]
             [version-tracker.release-client :as release-client]
-            [version-tracker.storage :as storage]))
+            [version-tracker.storage :as storage]
+            [version-tracker.crypto :as crypto]))
 
-(defrecord Server [handler release-client storage port]
+(defrecord Server [handler release-client storage encrypter port]
   component/Lifecycle
   (start [this]
     (assoc this :server (run-jetty (-> handler

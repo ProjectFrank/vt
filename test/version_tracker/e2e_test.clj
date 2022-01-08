@@ -7,7 +7,8 @@
             [version-tracker.fakes.fake-github :as fake-github]
             [version-tracker.model.user :as user]
             [version-tracker.test-utils :as test-utils]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [version-tracker.crypto :as crypto]))
 
 (use-fixtures :once test-utils/schema-validation-fixture)
 
@@ -15,9 +16,11 @@
   (let [port (get-in system [:config :webserver :port])]
     (format "http://localhost:%d" port)))
 
-(defn- signup [system username password]
+(defn- signup [system username password github-token]
   (let [url (str (base-url system) "/users")
-        payload (json/write-str {:username username, :password password})]
+        payload (json/write-str {:username username
+                                 :password password
+                                 :github_token github-token})]
     (http/post url {:body payload
                     :content-type :json})))
 
@@ -26,7 +29,10 @@
     (testing "authenticated"
       (let [username "foo"
             password "bar"
-            _ (user/create-user! (:storage system) "foo" "bar")
+            _ (user/create-user! (:storage system)
+                                 "foo"
+                                 "bar"
+                                 "token")
             url (str (base-url system) "/")
             resp (http/get url {:basic-auth [username password]})]
         (is (= "Hello foo" (:body resp)))
@@ -41,17 +47,21 @@
     (let [url (str (base-url system) "/users")
           username "foo"
           password "bar"
+          token "token"
+          decrypter (test-utils/decrypter)
           payload (json/write-str {:username username
-                                   :password password})]
+                                   :password password
+                                   :github_token token})]
       (testing "first time signup"
         (let [resp (http/post url {:body payload
                                    :content-type :json
                                    :throw-exceptions false})
               db-user (first (jdbc/query (:storage system)
-                                         ["SELECT password_hash FROM users WHERE username=?" username]))]
+                                         ["SELECT encrypted_github_token, password_hash FROM users WHERE username=?" username]))]
           (is (= 200 (:status resp)))
           (is (some? db-user))
-          (is (true? (hashers/check password (:password_hash db-user))))))
+          (is (true? (hashers/check password (:password_hash db-user))))
+          (is (= token (crypto/decrypt decrypter (:encrypted_github_token db-user))))))
       (testing "duplicate signup"
         (let [resp (http/post url {:body payload
                                    :content-type :json
@@ -63,9 +73,10 @@
     (let [url (str (base-url system) "/repos")
           username "foo"
           password "bar"
+          token "token"
           payload (json/write-str {:owner "microsoft"
                                    :repo_name "vscode"})]
-      (signup system username password)
+      (signup system username password token)
       (testing "first time tracking"
         (let [resp (http/post url {:body payload
                                    :content-type :json

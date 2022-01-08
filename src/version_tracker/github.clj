@@ -8,13 +8,14 @@
             [version-tracker.release-client :as release-client]))
 
 (s/defn ^:private send-graphql-request :- {s/Any s/Any}
-  [config :- config/GitHub
+  [base-url :- s/Str
+   token :- s/Str
    query :- s/Str
    variables :- {s/Any s/Any}]
-  (let [resp (http/post (:base-url config)
+  (let [resp (http/post base-url
                         {:body (json/write-str {:query query
                                                 :variables variables})
-                         :headers {"authorization" (format "token %s" (:token config))}})
+                         :headers {"authorization" (format "token %s" token)}})
         {:keys [data errors]} (-> resp :body (json/read-str :key-fn keyword))]
     (if (nil? data)
       (throw (ex-info "GraphQL error" {:query query
@@ -27,9 +28,11 @@
 (defrecord GitHubClient [config]
   release-client/ReleaseClient
   (-get-repo-id [_this owner name]
-    (let [data (send-graphql-request config
+    (let [data (send-graphql-request (:base-url config)
+                                     (:token config)
                                      repo-query
                                      {:owner owner, :name name})]
       (-> data :repository :id))))
+
 (s/defn github-client [config :- config/GitHub]
   (->GitHubClient config))

@@ -1,5 +1,6 @@
 (ns version-tracker.storage
-  (:require [schema.core :as s]))
+  (:require [schema.core :as s]
+            [version-tracker.crypto :as crypto]))
 
 (defn wrap-storage [handler storage]
   (fn [request]
@@ -9,7 +10,7 @@
   (::storage request))
 
 (defprotocol Storage
-  (-create-user [_this username password-hash])
+  (-create-user [_this username password-hash github-token])
   (-user-exists? [_this username])
   (-find-user [_this username])
   (-add-tracked-repo [_this user-id github-id]))
@@ -19,8 +20,12 @@
 (s/defn create-user! :- (s/eq nil)
   [store :- Store
    username :- s/Str
-   password-hash :- s/Str]
-  (-create-user store username password-hash))
+   password-hash :- s/Str
+   github-token :- s/Str]
+  (-create-user store
+                username
+                password-hash
+                github-token))
 
 (s/defn user-exists? :- s/Bool
   [store :- Store
@@ -29,7 +34,8 @@
 
 (s/defn find-user :- (s/maybe {:id s/Uuid
                                :username s/Str
-                               :password-hash s/Str})
+                               :password-hash s/Str
+                               :encrypted-github-token crypto/Bytes})
   [store :- Store
    username :- s/Str]
   (-find-user store username))

@@ -3,6 +3,7 @@
             [com.stuartsierra.component :as component]
             [schema.core :as s]
             [version-tracker.config :as config]
+            [version-tracker.crypto :as crypto]
             [version-tracker.fakes.fake-github :as fake-github]
             [version-tracker.main :as main]
             [version-tracker.storage.sql :as sql]))
@@ -18,8 +19,10 @@
   "Runs body with a postgres-storage bound to symbol tx-sym. Database transactions are rolled back, not committed."
   [tx-sym & body]
   `(let [config# (config/load-config)
-         sql-storage# (component/start
-                       (sql/postgres-storage (:postgres config#)))]
+         ciphers# (crypto/new-block-cipher (:crypto config#))
+         sql-storage# (-> (sql/postgres-storage (:postgres config#))
+                          (assoc :encrypter (:encrypter ciphers#))
+                          component/start)]
     (try
       (jdbc/with-db-transaction [~tx-sym sql-storage#]
         (jdbc/db-set-rollback-only! ~tx-sym)
@@ -45,3 +48,7 @@
          (finally
            (component/stop ~sys-sym)
            (fake-github/stop (:server fake-github#)))))))
+
+(defn decrypter []
+  (let [config (config/load-config {:profile :test})]
+    (:decrypter (crypto/new-block-cipher (:crypto config)))))

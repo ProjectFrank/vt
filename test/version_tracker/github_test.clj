@@ -9,9 +9,9 @@
 (use-fixtures :once test-utils/schema-validation-fixture)
 
 (deftest get-repo-id-test
-  (let [{:keys [server base-url]} (fake-github/start {:port 3001})
-        token (-> (config/load-config {:profile :test})
-                  (get-in [:github :token]))]
+  (let [token (-> (config/load-config {:profile :test})
+                  (get-in [:github :token]))
+        {:keys [server base-url]} (fake-github/start {:port 3001, :token token})]
     (try
       (testing "Repo exists"
         (let [release-client (github/github-client {:base-url base-url

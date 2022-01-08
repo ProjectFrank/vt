@@ -9,23 +9,31 @@
 
 (deftest create-user-test
   (let [username "foo"
-        password "bar"]
+        password "bar"
+        github-token "token"]
     (test-utils/with-sql-storage storage
       (testing "first creation"
-        (is (= ::user/created (user/create-user! storage username password)))
+        (is (= ::user/created (user/create-user! storage
+                                                 username
+                                                 password
+                                                 github-token)))
         (let [users (jdbc/query storage
                                 ["SELECT username, password_hash FROM users WHERE username=?" username])
               password-hash (-> users first :password_hash)]
           (is (= ["foo"] (map :username users)))
           (is (true? (hashers/check password password-hash)))))
       (testing "duplicate creation"
-        (is (= ::user/user-exists (user/create-user! storage username password)))))))
+        (is (= ::user/user-exists (user/create-user! storage
+                                                     username
+                                                     password
+                                                     github-token)))))))
 
 (deftest authenticate-user-test
   (let [username "foo"
-        password "bar"]
+        password "bar"
+        github-token "token"]
     (test-utils/with-sql-storage storage
-      (user/create-user! storage username password)
+      (user/create-user! storage username password github-token)
       (let [{:keys [id]} (first (jdbc/query storage
                                             ["SELECT id FROM users WHERE username=?" username]))]
         (testing "correct password"

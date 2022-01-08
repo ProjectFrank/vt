@@ -4,6 +4,7 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [aero "1.1.6"]
+                 [buddy/buddy-core "1.10.1"]
                  [buddy/buddy-hashers "1.8.1"]
                  [clj-http "3.12.3"]
                  [com.layerware/hugsql "0.5.1"]

@@ -6,6 +6,7 @@
             [hugsql.core :as hugsql]
             [schema.core :as s]
             [version-tracker.config :as config]
+            [version-tracker.crypto :as crypto]
             [version-tracker.storage :as storage]))
 
 (declare create-user*)
@@ -15,17 +16,20 @@
 
 (hugsql/def-db-fns (io/resource "queries.sql"))
 
-(s/defrecord PostgresStorage [datasource config :- config/Postgres]
+(s/defrecord PostgresStorage [datasource encrypter config :- config/Postgres]
   storage/Storage
   (-user-exists? [this username]
     (not= 0 (:count (count-users* this {:username username}))))
-  (-create-user [this username password-hash]
-    (create-user* this {:username username
-                        :password-hash password-hash})
+  (-create-user [this username password-hash github-token]
+    (create-user* this
+                  {:username username
+                   :password-hash password-hash
+                   :encrypted-github-token (crypto/encrypt encrypter github-token)})
     nil)
   (-find-user [this username]
     (if-let [result (find-user* this {:username username})]
-      (rename-keys result {:password_hash :password-hash})
+      (rename-keys result {:password_hash :password-hash
+                           :encrypted_github_token :encrypted-github-token})
       nil))
   (-add-tracked-repo [this user-id github-id]
     (when (= 0 (:count (count-tracked-repo-by-github-id* this {:user-id user-id

@@ -10,18 +10,18 @@
   (:gen-class))
 
 (s/defn system [config :- config/Config]
-  (let [{:keys [encrypter]} (crypto/new-block-cipher (:crypto config))]
+  (let [{:keys [decrypter encrypter]} (crypto/new-block-cipher (:crypto config))
+        github-client (github/partial-client (:github config) decrypter)]
    (component/system-map
     :config config
-    :release-client (github/github-client (:github config))
     :server (component/using
              (server/new
               (get-in config [:webserver :port]))
-             [:handler :storage :release-client])
+             [:handler :storage])
     :storage (component/using
               (sql/postgres-storage (:postgres config))
               [:encrypter])
-    :handler (handler/app)
+    :handler (handler/app github-client)
     :encrypter encrypter)))
 
 (defn -main [& _args]

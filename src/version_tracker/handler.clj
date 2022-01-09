@@ -4,10 +4,12 @@
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.middleware.json :as json]
             [schema.core :as s]
+            [version-tracker.github :as github]
             [version-tracker.handler.signup :as signup]
             [version-tracker.handler.track-repo :as track-repo]
             [version-tracker.model.user :as user]
-            [version-tracker.storage :as storage]))
+            [version-tracker.storage :as storage])
+  (:import [version_tracker.github Client]))
 
 (defn handle-hello [request]
   (let [{:keys [::user/username]} (:basic-authentication request)]
@@ -26,16 +28,19 @@
                                                                 (partial user/authenticate-user storage))]
       (wrapped-handler request))))
 
-(s/defn router []
+(s/defn router [github-client :- Client]
   (router/router
    [["/" {:get (wrap-basic-authentication handle-hello)}]
     ["/users" {:post signup/handler}]
-    ["/repos" {:post (wrap-basic-authentication track-repo/handler)}]]))
+    ["/repos" {:post (-> track-repo/handler
+                         (github/wrap-client github-client)
+                         wrap-basic-authentication)}]]))
+
 (def default-handler (router/create-default-handler
                       {:not-found (constantly {:status 404 :body "Not Found"})}))
 
-(defn handler []
-  (router/ring-handler (router) default-handler))
+(s/defn handler [github-client :- Client]
+  (router/ring-handler (router github-client) default-handler))
 
 (defn wrap-print-exceptions
   "Prints exceptions thrown by handler. Useful for debugging tests."
@@ -47,8 +52,8 @@
         (println e)
         (throw e)))))
 
-(defn app []
-  (-> (handler)
+(s/defn app [github-client :- Client]
+  (-> (handler github-client)
       wrap-print-exceptions
       json/wrap-json-response
       (json/wrap-json-params {:key-fn keyword})

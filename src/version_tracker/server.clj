@@ -5,12 +5,11 @@
             [version-tracker.storage :as storage]
             [version-tracker.crypto :as crypto]))
 
-(defrecord Server [handler release-client storage encrypter port]
+(defrecord Server [handler storage encrypter port]
   component/Lifecycle
   (start [this]
     (assoc this :server (run-jetty (-> handler
-                                       (storage/wrap-storage storage)
-                                       (release-client/wrap-release-client release-client))
+                                       (storage/wrap-storage storage))
                                    {:port port
                                     :join? false})))
   (stop [this]

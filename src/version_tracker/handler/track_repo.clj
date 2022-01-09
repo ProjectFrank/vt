@@ -1,5 +1,6 @@
 (ns version-tracker.handler.track-repo
   (:require [schema.core :as s]
+            [version-tracker.github :as github]
             [version-tracker.model.user :as user]
             [version-tracker.release-client :as release-client]
             [version-tracker.storage :as storage]))
@@ -11,14 +12,14 @@
 (defn handler [{:keys [json-params] :as request}]
   (let [{:keys [owner repo_name]} json-params
         storage (storage/storage request)
-        release-client (release-client/release-client request)
+        github-client (github/client-from-request request)
         {user-id ::user/id} (:basic-authentication request)
         valid? (not (s/check TrackRepoRequest json-params))]
     (if-not valid?
       {:status 400}
       (do
         (user/track-repo storage
-                         release-client
+                         github-client
                          user-id
                          owner
                          repo_name)

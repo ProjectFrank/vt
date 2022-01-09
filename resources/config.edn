@@ -7,9 +7,7 @@
   :user #or [#env DB_USER "vt"]
   :password #or [#env DB_PASSWORD "password"]}
  :github
- {:token #or [#env GH_TOKEN #profile {:default "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"
-                                      :test "magic-token"}]
-  :base-url #or [#env GH_API_URL #profile {:default "https://api.github.com/graphql"
+ {:base-url #or [#env GH_API_URL #profile {:default "https://api.github.com/graphql"
                                            :test "http://localhost:3001/graphql"}]}
  :crypto
  {:key #or [#env CRYPTO_KEY "00000000000000000000000000000000"]}}

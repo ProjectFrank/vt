@@ -1,6 +1,5 @@
 (ns version-tracker.handler.signup
   (:require [schema.core :as s]
-            [version-tracker.crypto :as crypto]
             [version-tracker.model.user :as user]
             [version-tracker.storage :as storage]))
 

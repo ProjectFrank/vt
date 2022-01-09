@@ -1,8 +1,10 @@
 (ns version-tracker.fakes.fake-github
-  (:require [clojure.data.json :as json]
+  (:require [cemerick.url :as url]
+            [clojure.data.json :as json]
             [clojure.string :as str]
             [ring.adapter.jetty :refer [run-jetty]]
-            [schema.core :as s])
+            [schema.core :as s]
+            [version-tracker.config :as config])
   (:import [org.eclipse.jetty.server Server]))
 
 (def repo-query
@@ -52,14 +54,16 @@ query ($owner:String!, $name:String!) {
 }
 "))
 
-(defn handler [token {:keys [request-method uri body headers]}]
+(def good-token "magic-token")
+
+(defn handler [path {:keys [request-method uri body headers]}]
   (if-not (and (= :post request-method)
-               (= uri "/graphql"))
+               (= uri path))
     {:status 500 :body "Fake GitHub only handles requests to POST /graphql"}
     (let [{:keys [query variables]} (json/read-str (slurp body) :key-fn keyword)]
       (cond
         (not= (get headers "authorization")
-              (format "token %s" token))
+              (format "token %s" good-token))
         {:status 401}
 
         (not= repo-query query)
@@ -76,11 +80,14 @@ query ($owner:String!, $name:String!) {
 
 (s/defn start :- {:server Server
                   :base-url s/Str}
-  [{:keys [port token]} :- {:port s/Int, :token s/Str}]
-  {:server (run-jetty (partial handler token)
-                      {:join? false
-                       :port port})
-   :base-url (format "http://localhost:%d/graphql" port)})
+  []
+  (let [config (config/load-config {:profile :test})
+        base-url (-> config :github :base-url)
+        url (url/url base-url)]
+   {:server (run-jetty (partial handler (:path url))
+                       {:join? false
+                        :port (:port url)})
+    :base-url base-url}))
 
 (s/defn stop :- (s/eq nil)
   [^Server server]

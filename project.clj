@@ -22,5 +22,5 @@
   :main version-tracker.main
   :plugins []
   :profiles
-  {:dev {:dependencies []
+  {:dev {:dependencies [[com.cemerick/url "0.1.1"]]
          :source-paths ["src" "test"]}})

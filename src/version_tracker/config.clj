@@ -11,8 +11,7 @@
    :password s/Str})
 
 (s/def GitHub
-  {:base-url s/Str
-   :token s/Str})
+  {:base-url s/Str})
 
 (s/def Crypto
   {:key s/Str})

@@ -10,7 +10,8 @@
 
 (s/def User
   {::id Id
-   ::username s/Str})
+   ::username s/Str
+   ::encrypted-github-token crypto/Bytes})
 
 (s/defn ^:private password-hash :- s/Str
   [password :- s/Str]
@@ -31,10 +32,12 @@
   [storage :- (s/protocol storage/Storage)
    username :- s/Str
    password-attempt :- s/Str]
-  (let [{:keys [id password-hash]} (storage/find-user storage username)
+  (let [{:keys [id password-hash encrypted-github-token]} (storage/find-user storage username)
         password-correct? (hashers/check password-attempt password-hash)]
     (if password-correct?
-      {::id id, ::username username}
+      {::id id
+       ::username username
+       ::encrypted-github-token encrypted-github-token}
       nil)))
 
 (s/defn track-repo :- (s/enum ::tracked ::repo-not-found)

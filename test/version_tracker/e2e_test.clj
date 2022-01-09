@@ -73,10 +73,9 @@
     (let [url (str (base-url system) "/repos")
           username "foo"
           password "bar"
-          token "token"
           payload (json/write-str {:owner "microsoft"
                                    :repo_name "vscode"})]
-      (signup system username password token)
+      (signup system username password fake-github/good-token)
       (testing "first time tracking"
         (let [resp (http/post url {:body payload
                                    :content-type :json

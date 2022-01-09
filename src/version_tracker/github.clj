@@ -5,7 +5,9 @@
             [clj-http.client :as http]
             [schema.core :as s]
             [version-tracker.config :as config]
-            [version-tracker.release-client :as release-client]))
+            [version-tracker.crypto :as crypto]
+            [version-tracker.release-client :as release-client]
+            [version-tracker.model.user :as user]))
 
 (s/defn ^:private send-graphql-request :- {s/Any s/Any}
   [base-url :- s/Str
@@ -25,14 +27,44 @@
 
 (def repo-query (-> (io/resource "graphql/repo.graphql") slurp str/trim))
 
-(defrecord GitHubClient [config]
+(defrecord Client [config decrypter token]
   release-client/ReleaseClient
   (-get-repo-id [_this owner name]
     (let [data (send-graphql-request (:base-url config)
-                                     (:token config)
+                                     token
                                      repo-query
                                      {:owner owner, :name name})]
       (-> data :repository :id))))
 
-(s/defn github-client [config :- config/GitHub]
-  (->GitHubClient config))
+(s/defn add-credentials :- Client
+  "Adds credentials to the github client."
+  [github-client :- Client
+   encrypted-token :- crypto/Bytes]
+  (let [decrypter (:decrypter github-client)
+        token (crypto/decrypt decrypter encrypted-token)]
+    (assoc github-client :token token)))
+
+(s/defn partial-client :- Client
+  "Constructs a partial github client. Note that the client cannot be
+  used until credentials are added."
+  [config :- config/GitHub
+   decrypter :- (s/protocol crypto/Decrypter)]
+  (map->Client {:config config
+                :decrypter decrypter}))
+
+(s/defn wrap-client
+  "Adds the github client to the request map. Requires basic-authentication
+  middleware in outer layer."
+  [handler
+   client :- Client]
+  (fn [request]
+    (let [encrypted-token (-> request
+                              :basic-authentication
+                              ::user/encrypted-github-token)
+          client' (add-credentials client encrypted-token)]
+      (handler (assoc request ::client client')))))
+
+(s/defn client-from-request :- Client
+  "Extracts the client from the request map"
+  [request]
+  (::client request))

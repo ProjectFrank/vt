@@ -35,11 +35,7 @@
   [sys-sym & body]
   `(with-sql-storage tx#
      (let [config# (config/load-config {:profile :test})
-           github-token# (get-in config# [:github :token])
-           fake-github# (fake-github/start {:port 3001, :token github-token#})
-           config#  (assoc-in config#
-                             [:github :base-url]
-                             (:base-url fake-github#))
+           fake-github# (fake-github/start)
            ~sys-sym (-> (main/system config#)
                         (assoc :storage tx#)
                         component/start)]

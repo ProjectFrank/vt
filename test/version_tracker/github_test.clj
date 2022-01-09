@@ -2,21 +2,18 @@
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [version-tracker.fakes.fake-github :as fake-github]
             [version-tracker.github :as github]
-            [version-tracker.test-utils :as test-utils]
             [version-tracker.release-client :as release-client]
-            [version-tracker.config :as config]))
+            [version-tracker.test-utils :as test-utils]))
 
 (use-fixtures :once test-utils/schema-validation-fixture)
 
 (deftest get-repo-id-test
-  (let [token (-> (config/load-config {:profile :test})
-                  (get-in [:github :token]))
-        {:keys [server base-url]} (fake-github/start {:port 3001, :token token})]
+  (let [{:keys [base-url server]} (fake-github/start)]
     (try
       (testing "Repo exists"
-        (let [release-client (github/github-client {:base-url base-url
-                                                    :token token})]
+        (let [github-client (github/map->Client {:config {:base-url base-url}
+                                                 :token fake-github/good-token})]
           (is (= "MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA=="
-                 (release-client/get-repo-id release-client "microsoft" "vscode")))))
+                 (release-client/get-repo-id github-client "microsoft" "vscode")))))
       (finally
         (fake-github/stop server)))))

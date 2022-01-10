@@ -46,18 +46,15 @@
     (let [username "foo"
           _ (storage/create-user! storage username "bar" "token")
           github-id "someid"
-          {user-id :id} (storage/find-user storage "foo")
-          _ (is (some? user-id))
-          tracked-repos #(jdbc/query storage ["SELECT user_id, github_id FROM tracked_repos WHERE user_id=? AND github_id=?" user-id github-id])]
+          {user-id :id} (storage/find-user storage username)
+          _ (is (some? user-id))]
       (testing "First call"
-        (is (= [] (tracked-repos)))
+        (is (= [] (storage/find-tracked-repo-github-ids storage user-id)))
         (is (nil? (storage/add-tracked-repo storage user-id github-id)))
-        (is (= [{:user_id user-id
-                 :github_id github-id}]
-               (tracked-repos))))
+        (is (= [{:github-id github-id}]
+               (storage/find-tracked-repo-github-ids storage user-id))))
       (testing "Second call"
         (is (nil? (storage/add-tracked-repo storage user-id github-id))
             "Should be idempotent")
-        (is (= [{:user_id user-id
-                 :github_id github-id}]
-               (tracked-repos)))))))
+        (is (= [{:github-id github-id}]
+               (storage/find-tracked-repo-github-ids storage user-id)))))))

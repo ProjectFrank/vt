@@ -36,6 +36,9 @@
                                                                :github-id github-id})))
      (add-tracked-repo* this {:user-id user-id, :github-id github-id}))
     nil)
+  (-find-tracked-repo-github-ids [this user-id]
+    (->> (find-tracked-repo-github-ids* this {:user-id user-id})
+         (mapv #(rename-keys % {:github_id :github-id}))))
 
   component/Lifecycle
   (start [this]

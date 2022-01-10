@@ -16,6 +16,26 @@ query ($owner:String!, $name:String!) {
 }
 "))
 
+(def repo-summaries-query
+  (str/trim "
+query($ids:[ID!]!) {
+  nodes(ids:$ids) {
+    ... on Repository {
+      owner {
+        login
+      }
+      name
+      releases(first:1, orderBy:{field:CREATED_AT, direction:DESC}) {
+        nodes {
+          publishedAt
+          tagName
+        }
+      }
+    }
+  }
+}
+"))
+
 (def repo-github-id "MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA==")
 
 (def repo-response
@@ -56,6 +76,47 @@ query ($owner:String!, $name:String!) {
 
 (def good-token "magic-token")
 
+(defn- response [body]
+  {:status 200, :body body, :headers {"content-type" "application/json"}})
+
+(defn- mock-repo-query [variables]
+  (if (= {:owner "microsoft", :name "vscode"} variables)
+    (response repo-response)
+    (response not-found-repo-response)))
+
+(def repo-summaries-response
+  (str/trim "
+{
+  \"data\": {
+    \"nodes\": [
+      {
+        \"owner\": {
+          \"login\": \"microsoft\"
+        },
+        \"name\": \"vscode\",
+        \"releases\": {
+          \"nodes\": [
+            {
+              \"name\": \"November 2021 Recovery 2\",
+              \"publishedAt\": \"2021-12-16T17:51:28Z\",
+              \"tagName\": \"1.63.2\"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+"))
+
+(defn- mock-repo-summaries-query [variables]
+  (if (= variables {:ids ["MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA=="]})
+    (response repo-summaries-response)
+    (let [body (json/write-str {:data
+                                {:nodes
+                                 (repeat (count (:ids variables)) nil)}})]
+      (response body))))
+
 (defn handler [path {:keys [request-method uri body headers]}]
   (if-not (and (= :post request-method)
                (= uri path))
@@ -66,14 +127,14 @@ query ($owner:String!, $name:String!) {
               (format "token %s" good-token))
         {:status 401}
 
-        (not= repo-query query)
+        (not (#{repo-query repo-summaries-query} query))
         {:status 500, :body (format "Unsupported graphql query: %s" query)}
 
-        (= {:owner "microsoft", :name "vscode"} variables)
-        {:status 200, :body repo-response, :headers {"content-type" "application/json"}}
+        (= repo-query query)
+        (mock-repo-query variables)
 
-        (= {:owner "notfound", :name "notfound"} variables)
-        {:status 200, :body not-found-repo-response, :headers {"content-type" "application/json"}}
+        (= repo-summaries-query query)
+        (mock-repo-summaries-query variables)
 
         :else
         {:status 500, :body "unknown error"}))))

@@ -1,10 +1,10 @@
 (ns version-tracker.model.user
   (:require [buddy.hashers :as hashers]
+            [clojure.set :refer [rename-keys]]
             [schema.core :as s]
             [version-tracker.crypto :as crypto]
             [version-tracker.release-client :as release-client]
-            [version-tracker.storage :as storage])
-  (:import [java.util UUID]))
+            [version-tracker.storage :as storage]))
 
 (s/def Id s/Uuid)
 
@@ -51,3 +51,23 @@
       (storage/add-tracked-repo storage user-id repo-id)
       ::tracked)
     ::repo-not-found))
+
+(s/defn list-tracked-repos :- [{::owner s/Str
+                                ::name s/Str
+                                ::latest-release
+                                {::version s/Str
+                                 ::date s/Str}}]
+  [storage :- (s/protocol storage/Storage)
+   release-client :- (s/protocol release-client/ReleaseClient)
+   user-id :- Id]
+  (let [github-ids (->> (storage/find-tracked-repo-github-ids storage user-id)
+                        (map :github-id))
+        repo-summaries (release-client/get-repo-summaries release-client github-ids)]
+    (map (fn [client-summary]
+           (-> client-summary
+               (rename-keys {:owner ::owner
+                             :name ::name
+                             :latest-release ::latest-release})
+               (update ::latest-release rename-keys {:version ::version
+                                                     :date ::date})))
+         repo-summaries)))

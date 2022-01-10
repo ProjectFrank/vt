@@ -17,3 +17,19 @@
                  (release-client/get-repo-id github-client "microsoft" "vscode")))))
       (finally
         (fake-github/stop server)))))
+
+(deftest get-repo-summaries-test
+  (let [{:keys [base-url server]} (fake-github/start)]
+    (try
+      (testing "Happy path"
+        (let [github-client (github/map->Client {:config {:base-url base-url}
+                                                 :token fake-github/good-token})]
+          (is (= [{:owner "microsoft"
+                   :name "vscode"
+                   :latest-release
+                   {:version "1.63.2"
+                    :date "2021-12-16T17:51:28Z"}}]
+                 (release-client/get-repo-summaries github-client
+                                                    ["MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA=="])))))
+      (finally
+        (fake-github/stop server)))))

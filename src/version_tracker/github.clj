@@ -27,6 +27,8 @@
 
 (def repo-query (-> (io/resource "graphql/repo.graphql") slurp str/trim))
 
+(def repo-summaries-query (-> (io/resource "graphql/repo_summaries.graphql") slurp str/trim))
+
 (defrecord Client [config decrypter token]
   release-client/ReleaseClient
   (-get-repo-id [_this owner name]
@@ -34,7 +36,23 @@
                                      token
                                      repo-query
                                      {:owner owner, :name name})]
-      (-> data :repository :id))))
+      (-> data :repository :id)))
+
+  (-get-repo-summaries [_this repo-ids]
+    (let [data (send-graphql-request (:base-url config)
+                                     token
+                                     repo-summaries-query
+                                     {:ids repo-ids})]
+      (->> (:nodes data)
+           (filter some?)
+           (map (fn [node]
+                  (let [owner-name (get-in node [:owner :login])
+                        repo-name (:name node)
+                        latest-release {:version (-> node :releases :nodes first :tagName)
+                                        :date (-> node :releases :nodes first :publishedAt)}]
+                    {:owner owner-name
+                     :name repo-name
+                     :latest-release latest-release})))))))
 
 (s/defn add-credentials :- Client
   "Adds credentials to the github client."

@@ -5,6 +5,7 @@
             [ring.middleware.json :as json]
             [schema.core :as s]
             [version-tracker.github :as github]
+            [version-tracker.handler.repo-summaries :as repo-summaries]
             [version-tracker.handler.signup :as signup]
             [version-tracker.handler.track-repo :as track-repo]
             [version-tracker.model.user :as user]
@@ -32,7 +33,10 @@
   (router/router
    [["/" {:get (wrap-basic-authentication handle-hello)}]
     ["/users" {:post signup/handler}]
-    ["/repos" {:post (-> track-repo/handler
+    ["/repos" {:get (-> repo-summaries/handler
+                        (github/wrap-client github-client)
+                        wrap-basic-authentication)
+               :post (-> track-repo/handler
                          (github/wrap-client github-client)
                          wrap-basic-authentication)}]]))
 

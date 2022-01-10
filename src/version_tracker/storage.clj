@@ -13,7 +13,8 @@
   (-create-user [_this username password-hash github-token])
   (-user-exists? [_this username])
   (-find-user [_this username])
-  (-add-tracked-repo [_this user-id github-id]))
+  (-add-tracked-repo [_this user-id github-id])
+  (-find-tracked-repo-github-ids [_this user-id]))
 
 (s/def Store (s/protocol Storage))
 
@@ -45,3 +46,8 @@
    user-id :- s/Uuid
    github-id :- s/Str]
   (-add-tracked-repo store user-id github-id))
+
+(s/defn find-tracked-repo-github-ids :- [{:github-id s/Str}]
+  [store :- Store
+   user-id :- s/Uuid]
+  (-find-tracked-repo-github-ids store user-id))

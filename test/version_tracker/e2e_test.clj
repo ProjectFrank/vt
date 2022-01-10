@@ -93,6 +93,41 @@
           (is (= 200 (:status resp)))
           (is (some? db-repo)))))))
 
+(deftest repo-summaries-test
+  (test-utils/with-system system
+    (let [url (str (base-url system) "/repos")
+          username "foo"
+          password "bar"]
+      (signup system username password fake-github/good-token)
+      
+      (testing "no repos tracked"
+        (let [resp (http/get url {:basic-auth [username password]
+                                  :throw-exceptions false})]
+          (is (= 200 (:status resp)))
+          (is (= {:items []}
+                 (-> resp
+                     :body
+                     (json/read-str :key-fn keyword))))))
+      (testing "one repo tracked"
+        ;; track the repo
+        (is (= 200 (:status (http/post url {:body (json/write-str {:owner "microsoft"
+                                                                   :repo_name "vscode"})
+                                            :content-type :json
+                                            :throw-exceptions false
+                                            :basic-auth [username password]}))))
+        
+        (let [resp (http/get url {:basic-auth [username password]
+                                  :throw-exceptions false})]
+          (is (= 200 (:status resp)))
+          (is (= {:items [{:owner "microsoft"
+                           :repo_name "vscode"
+                           :latest_release
+                           {:version "1.63.2"
+                            :date "2021-12-16T17:51:28Z"}}]}
+                 (-> resp
+                     :body
+                     (json/read-str :key-fn keyword)))))))))
+
 (deftest not-found-test
   (test-utils/with-system system
     (let [url (str (base-url system) "/invalid")

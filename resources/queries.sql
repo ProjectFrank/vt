@@ -23,3 +23,8 @@ VALUES (:user-id, :github-id)
 SELECT COUNT(*) as count
 FROM tracked_repos
 WHERE github_id=:github-id AND user_id=:user-id
+
+-- :name find-tracked-repo-github-ids* :? :*
+SELECT github_id
+FROM tracked_repos
+WHERE user_id=:user-id

@@ -41,7 +41,7 @@
    username :- s/Str]
   (-find-user store username))
 
-(s/defn add-tracked-repo :- (s/eq nil)
+(s/defn add-tracked-repo :- {:id s/Uuid}
   [store :- Store
    user-id :- s/Uuid
    github-id :- s/Str]

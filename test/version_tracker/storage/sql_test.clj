@@ -50,11 +50,13 @@
           _ (is (some? user-id))]
       (testing "First call"
         (is (= [] (storage/find-tracked-repo-github-ids storage user-id)))
-        (is (nil? (storage/add-tracked-repo storage user-id github-id)))
-        (is (= [{:github-id github-id}]
-               (storage/find-tracked-repo-github-ids storage user-id))))
-      (testing "Second call"
-        (is (nil? (storage/add-tracked-repo storage user-id github-id))
-            "Should be idempotent")
-        (is (= [{:github-id github-id}]
-               (storage/find-tracked-repo-github-ids storage user-id)))))))
+        (let [result (storage/add-tracked-repo storage user-id github-id)]
+          (is (uuid? (:id result)))
+          (is (= [{:github-id github-id}]
+                 (storage/find-tracked-repo-github-ids storage user-id)))
+          (testing "Second call"
+            (is (= {:id (:id result)}
+                   (storage/add-tracked-repo storage user-id github-id))
+                "Should be idempotent")
+            (is (= [{:github-id github-id}]
+                   (storage/find-tracked-repo-github-ids storage user-id)))))))))

@@ -78,7 +78,7 @@
         (is (= [] (user/list-tracked-repos storage
                                            stub-release-client
                                            (::user/id user))))
-        (is (= ::user/repo-not-found
+        (is (= {::user/result ::user/repo-not-found}
                (user/track-repo storage
                                 stub-release-client
                                 (::user/id user)
@@ -91,12 +91,13 @@
         (is (= [] (user/list-tracked-repos storage
                                            stub-release-client
                                            (::user/id user))))
-        (is (= ::user/tracked
-               (user/track-repo storage
-                                stub-release-client
-                                (::user/id user)
-                                "microsoft"
-                                "vscode")))
+        (let [result (user/track-repo storage
+                                  stub-release-client
+                                  (::user/id user)
+                                  "microsoft"
+                                  "vscode")]
+          (is (= ::user/tracked (::user/result result)))
+          (is (uuid? (get-in result [::user/repo ::user/id]))))
         (is (= [{::user/owner "microsoft"
                  ::user/name "vscode"
                  ::user/latest-release

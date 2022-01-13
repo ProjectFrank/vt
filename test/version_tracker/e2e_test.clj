@@ -83,7 +83,7 @@
                                    :basic-auth [username password]})
               db-repo (first (jdbc/query (:storage system)
                                          [(str/join "\n"
-                                                    ["SELECT tracked_repos.github_id"
+                                                    ["SELECT tracked_repos.id, tracked_repos.github_id"
                                                      "FROM tracked_repos"
                                                      "JOIN users ON tracked_repos.user_id = users.id"
                                                      "WHERE tracked_repos.github_id = ?"
@@ -91,6 +91,8 @@
                                           fake-github/repo-github-id
                                           username]))]
           (is (= 200 (:status resp)))
+          (is (= {:id (str (:id db-repo))}
+                 (-> resp :body (json/read-str :key-fn keyword))))
           (is (some? db-repo)))))))
 
 (deftest repo-summaries-test
@@ -133,3 +135,11 @@
     (let [url (str (base-url system) "/invalid")
           resp (http/get url {:throw-exceptions false})]
       (is (= 404 (:status resp))))))
+
+#_(deftest mark-seen-test
+  (test-utils/with-system system
+    (let [url (str (base-url system) "/repos")
+          username "foo"
+          password "bar"]
+      (signup system username password fake-github/good-token)
+      )))

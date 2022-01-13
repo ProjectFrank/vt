@@ -20,7 +20,5 @@
                  [ring/ring-json "0.5.1"]
                  [ring-basic-authentication "1.1.1"]]
   :main version-tracker.main
-  :plugins []
   :profiles
-  {:dev {:dependencies [[com.cemerick/url "0.1.1"]]
-         :source-paths ["src" "test"]}})
+  {:dev {:dependencies [[com.cemerick/url "0.1.1"]]}})

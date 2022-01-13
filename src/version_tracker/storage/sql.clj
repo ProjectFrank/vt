@@ -13,6 +13,9 @@
 (declare count-users*)
 (declare find-user*)
 (declare count-tracked-repo-by-github-id*)
+(declare add-tracked-repo*)
+(declare find-tracked-repo*)
+(declare find-tracked-repo-github-ids*)
 
 (hugsql/def-db-fns (io/resource "queries.sql"))
 
@@ -32,10 +35,10 @@
                            :encrypted_github_token :encrypted-github-token})
       nil))
   (-add-tracked-repo [this user-id github-id]
-    (when (= 0 (:count (count-tracked-repo-by-github-id* this {:user-id user-id
-                                                               :github-id github-id})))
-     (add-tracked-repo* this {:user-id user-id, :github-id github-id}))
-    nil)
+    (if (= 0 (:count (count-tracked-repo-by-github-id* this {:user-id user-id
+                                                             :github-id github-id})))
+      (add-tracked-repo* this {:user-id user-id, :github-id github-id})
+      (find-tracked-repo* this {:user-id user-id, :github-id github-id})))
   (-find-tracked-repo-github-ids [this user-id]
     (->> (find-tracked-repo-github-ids* this {:user-id user-id})
          (mapv #(rename-keys % {:github_id :github-id}))))

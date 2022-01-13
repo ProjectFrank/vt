@@ -15,9 +15,10 @@ SELECT id, username, password_hash, encrypted_github_token
 FROM users
 WHERE username=:username
 
--- :name add-tracked-repo* :! :n
+-- :name add-tracked-repo* :<! :n
 INSERT INTO tracked_repos (user_id, github_id)
 VALUES (:user-id, :github-id)
+RETURNING id
 
 -- :name count-tracked-repo-by-github-id* :? :1
 SELECT COUNT(*) as count
@@ -28,3 +29,8 @@ WHERE github_id=:github-id AND user_id=:user-id
 SELECT github_id
 FROM tracked_repos
 WHERE user_id=:user-id
+
+-- :name find-tracked-repo* :? :1
+SELECT id
+FROM tracked_repos
+WHERE user_id = :user-id AND github_id = :github-id

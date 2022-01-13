@@ -40,17 +40,26 @@
        ::encrypted-github-token encrypted-github-token}
       nil)))
 
-(s/defn track-repo :- (s/enum ::tracked ::repo-not-found)
+(s/def TrackRepoResult
+  (s/conditional
+   #(= ::tracked (::result %))
+   {::repo {::id s/Uuid}
+    ::result (s/eq ::tracked)}
+
+   :else
+   {::result (s/eq ::repo-not-found)}))
+
+(s/defn track-repo :- TrackRepoResult
   [storage :- (s/protocol storage/Storage)
    release-client :- (s/protocol release-client/ReleaseClient)
    user-id :- Id
    owner :- s/Str
    repo-name :- s/Str]
   (if-let [repo-id (release-client/get-repo-id release-client owner repo-name)]
-    (do
-      (storage/add-tracked-repo storage user-id repo-id)
-      ::tracked)
-    ::repo-not-found))
+    (let [{:keys [id]} (storage/add-tracked-repo storage user-id repo-id)]
+      {::result ::tracked
+       ::repo {::id id}})
+    {::result ::repo-not-found}))
 
 (s/defn list-tracked-repos :- [{::owner s/Str
                                 ::name s/Str

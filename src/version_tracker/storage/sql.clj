@@ -15,7 +15,7 @@
 (declare count-tracked-repo-by-github-id*)
 (declare add-tracked-repo*)
 (declare find-tracked-repo*)
-(declare find-tracked-repo-github-ids*)
+(declare find-tracked-repos*)
 
 (hugsql/def-db-fns (io/resource "queries.sql"))
 
@@ -39,9 +39,10 @@
                                                              :github-id github-id})))
       (add-tracked-repo* this {:user-id user-id, :github-id github-id})
       (find-tracked-repo* this {:user-id user-id, :github-id github-id})))
-  (-find-tracked-repo-github-ids [this user-id]
-    (->> (find-tracked-repo-github-ids* this {:user-id user-id})
-         (mapv #(rename-keys % {:github_id :github-id}))))
+  (-find-tracked-repos [this user-id]
+    (->> (find-tracked-repos* this {:user-id user-id})
+         (mapv #(rename-keys % {:github_id :github-id
+                                :last_seen_release :last-seen}))))
 
   component/Lifecycle
   (start [this]

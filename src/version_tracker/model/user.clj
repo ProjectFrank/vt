@@ -4,7 +4,8 @@
             [schema.core :as s]
             [version-tracker.crypto :as crypto]
             [version-tracker.release-client :as release-client]
-            [version-tracker.storage :as storage]))
+            [version-tracker.storage :as storage])
+  (:import [java.time Instant]))
 
 (s/def Id s/Uuid)
 
@@ -61,22 +62,30 @@
        ::repo {::id id}})
     {::result ::repo-not-found}))
 
-(s/defn list-tracked-repos :- [{::owner s/Str
+(s/defn list-tracked-repos :- [{::id s/Uuid
+                                ::last-seen (s/maybe Instant)
+                                ::owner s/Str
                                 ::name s/Str
                                 ::latest-release
                                 {::version s/Str
-                                 ::date s/Str}}]
+                                 ::date Instant}}]
   [storage :- (s/protocol storage/Storage)
    release-client :- (s/protocol release-client/ReleaseClient)
    user-id :- Id]
-  (let [github-ids (->> (storage/find-tracked-repo-github-ids storage user-id)
-                        (map :github-id))
-        repo-summaries (release-client/get-repo-summaries release-client github-ids)]
-    (map (fn [client-summary]
-           (-> client-summary
-               (rename-keys {:owner ::owner
-                             :name ::name
-                             :latest-release ::latest-release})
-               (update ::latest-release rename-keys {:version ::version
-                                                     :date ::date})))
-         repo-summaries)))
+  (let [by-github-id (->> (storage/find-tracked-repos storage user-id)
+                          (group-by :github-id))
+        repo-summaries (release-client/get-repo-summaries release-client (keys by-github-id))
+        summaries-by-external-id (group-by :external-id repo-summaries)]
+    (map (fn [external-id]
+           (let [rc-summary (first (get summaries-by-external-id external-id))
+                 storage-summary (first (get by-github-id external-id))]
+             (-> rc-summary
+                 (rename-keys {:owner ::owner
+                               :name ::name
+                               :latest-release ::latest-release})
+                 (update ::latest-release rename-keys {:version ::version
+                                                       :date ::date})
+                 (assoc ::id (:id storage-summary)
+                        ::last-seen (:last-seen storage-summary))
+                 (dissoc :external-id))))
+         (keys summaries-by-external-id))))

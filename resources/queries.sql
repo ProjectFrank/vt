@@ -25,8 +25,8 @@ SELECT COUNT(*) as count
 FROM tracked_repos
 WHERE github_id=:github-id AND user_id=:user-id
 
--- :name find-tracked-repo-github-ids* :? :*
-SELECT github_id
+-- :name find-tracked-repos* :? :*
+SELECT id, github_id, last_seen_release
 FROM tracked_repos
 WHERE user_id=:user-id
 

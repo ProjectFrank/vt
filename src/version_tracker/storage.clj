@@ -1,6 +1,7 @@
 (ns version-tracker.storage
   (:require [schema.core :as s]
-            [version-tracker.crypto :as crypto]))
+            [version-tracker.crypto :as crypto])
+  (:import [java.time Instant]))
 
 (defn wrap-storage [handler storage]
   (fn [request]
@@ -14,7 +15,7 @@
   (-user-exists? [_this username])
   (-find-user [_this username])
   (-add-tracked-repo [_this user-id github-id])
-  (-find-tracked-repo-github-ids [_this user-id]))
+  (-find-tracked-repos [_this user-id]))
 
 (s/def Store (s/protocol Storage))
 
@@ -47,7 +48,9 @@
    github-id :- s/Str]
   (-add-tracked-repo store user-id github-id))
 
-(s/defn find-tracked-repo-github-ids :- [{:github-id s/Str}]
+(s/defn find-tracked-repos :- [{:github-id s/Str
+                                :id s/Uuid
+                                :last-seen (s/maybe Instant)}]
   [store :- Store
    user-id :- s/Uuid]
-  (-find-tracked-repo-github-ids store user-id))
+  (-find-tracked-repos store user-id))

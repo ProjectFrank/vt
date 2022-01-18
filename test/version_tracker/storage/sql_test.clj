@@ -49,14 +49,18 @@
           {user-id :id} (storage/find-user storage username)
           _ (is (some? user-id))]
       (testing "First call"
-        (is (= [] (storage/find-tracked-repo-github-ids storage user-id)))
+        (is (= [] (storage/find-tracked-repos storage user-id)))
         (let [result (storage/add-tracked-repo storage user-id github-id)]
           (is (uuid? (:id result)))
-          (is (= [{:github-id github-id}]
-                 (storage/find-tracked-repo-github-ids storage user-id)))
+          (is (= [{:github-id github-id
+                   :id (:id result)
+                   :last-seen nil}]
+                 (storage/find-tracked-repos storage user-id)))
           (testing "Second call"
             (is (= {:id (:id result)}
                    (storage/add-tracked-repo storage user-id github-id))
                 "Should be idempotent")
-            (is (= [{:github-id github-id}]
-                   (storage/find-tracked-repo-github-ids storage user-id)))))))))
+            (is (= [{:github-id github-id
+                     :id (:id result)
+                     :last-seen nil}]
+                   (storage/find-tracked-repos storage user-id)))))))))

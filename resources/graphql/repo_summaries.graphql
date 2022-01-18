@@ -1,6 +1,7 @@
 query($ids:[ID!]!) {
   nodes(ids:$ids) {
     ... on Repository {
+      id
       owner {
         login
       }

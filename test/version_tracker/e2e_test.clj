@@ -111,24 +111,27 @@
                      :body
                      (json/read-str :key-fn keyword))))))
       (testing "one repo tracked"
-        ;; track the repo
-        (is (= 200 (:status (http/post url {:body (json/write-str {:owner "microsoft"
+        (let [track-resp (http/post url {:body (json/write-str {:owner "microsoft"
                                                                    :repo_name "vscode"})
                                             :content-type :json
                                             :throw-exceptions false
-                                            :basic-auth [username password]}))))
-        
-        (let [resp (http/get url {:basic-auth [username password]
-                                  :throw-exceptions false})]
-          (is (= 200 (:status resp)))
-          (is (= {:items [{:owner "microsoft"
-                           :repo_name "vscode"
-                           :latest_release
-                           {:version "1.63.2"
-                            :date "2021-12-16T17:51:28Z"}}]}
-                 (-> resp
-                     :body
-                     (json/read-str :key-fn keyword)))))))))
+                                         :basic-auth [username password]})
+              repo-id (-> track-resp :body (json/read-str :key-fn keyword) :id)]
+          (is (= 200 (:status track-resp)))
+          
+          (let [resp (http/get url {:basic-auth [username password]
+                                    :throw-exceptions false})]
+            (is (= 200 (:status resp)))
+            (is (= {:items [{:id repo-id
+                             :owner "microsoft"
+                             :repo_name "vscode"
+                             :last_seen nil
+                             :latest_release
+                             {:version "1.63.2"
+                              :date "2021-12-16T17:51:28Z"}}]}
+                   (-> resp
+                       :body
+                       (json/read-str :key-fn keyword))))))))))
 
 (deftest not-found-test
   (test-utils/with-system system

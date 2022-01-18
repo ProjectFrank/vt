@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clj-http.client :as http]
+            [java-time :as time]
             [schema.core :as s]
             [version-tracker.config :as config]
             [version-tracker.crypto :as crypto]
@@ -48,9 +49,20 @@
            (map (fn [node]
                   (let [owner-name (get-in node [:owner :login])
                         repo-name (:name node)
-                        latest-release {:version (-> node :releases :nodes first :tagName)
-                                        :date (-> node :releases :nodes first :publishedAt)}]
-                    {:owner owner-name
+                        latest-release {:version (-> node
+                                                     :releases
+                                                     :nodes
+                                                     first
+                                                     :tagName)
+                                        :date (-> node
+                                                  :releases
+                                                  :nodes
+                                                  first
+                                                  :publishedAt
+                                                  time/instant)}
+                        external-id (:id node)]
+                    {:external-id external-id
+                     :owner owner-name
                      :name repo-name
                      :latest-release latest-release})))))))
 

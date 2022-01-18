@@ -1,5 +1,6 @@
 (ns version-tracker.github-test
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [java-time :as time]
             [version-tracker.fakes.fake-github :as fake-github]
             [version-tracker.github :as github]
             [version-tracker.release-client :as release-client]
@@ -24,11 +25,12 @@
       (testing "Happy path"
         (let [github-client (github/map->Client {:config {:base-url base-url}
                                                  :token fake-github/good-token})]
-          (is (= [{:owner "microsoft"
+          (is (= [{:external-id "MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA=="
+                   :owner "microsoft"
                    :name "vscode"
                    :latest-release
                    {:version "1.63.2"
-                    :date "2021-12-16T17:51:28Z"}}]
+                    :date (time/instant "2021-12-16T17:51:28Z")}}]
                  (release-client/get-repo-summaries github-client
                                                     ["MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA=="])))))
       (finally

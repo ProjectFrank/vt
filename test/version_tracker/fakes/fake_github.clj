@@ -21,6 +21,7 @@ query ($owner:String!, $name:String!) {
 query($ids:[ID!]!) {
   nodes(ids:$ids) {
     ... on Repository {
+      id
       owner {
         login
       }
@@ -90,6 +91,7 @@ query($ids:[ID!]!) {
   \"data\": {
     \"nodes\": [
       {
+        \"id\": \"MDEwOlJlcG9zaXRvcnk0MTg4MTkwMA==\",
         \"owner\": {
           \"login\": \"microsoft\"
         },

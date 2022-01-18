@@ -1,5 +1,6 @@
 (ns version-tracker.handler
-  (:require [reitit.ring :as router]
+  (:require [cheshire.generate :as json-generate]
+            [reitit.ring :as router]
             [ring.middleware.basic-authentication :as ring-basic]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.middleware.json :as json]
@@ -10,7 +11,11 @@
             [version-tracker.handler.track-repo :as track-repo]
             [version-tracker.model.user :as user]
             [version-tracker.storage :as storage])
-  (:import [version_tracker.github Client]))
+  (:import [java.time Instant]
+           [version_tracker.github Client]))
+
+;; json serialize Instant as its string representation
+(json-generate/add-encoder Instant json-generate/encode-str)
 
 (defn handle-hello [request]
   (let [{:keys [::user/username]} (:basic-authentication request)]
@@ -58,7 +63,7 @@
 
 (s/defn app [github-client :- Client]
   (-> (handler github-client)
-      wrap-print-exceptions
       json/wrap-json-response
       (json/wrap-json-params {:key-fn keyword})
+      wrap-print-exceptions
       (wrap-defaults api-defaults)))

@@ -7,6 +7,7 @@
                  [buddy/buddy-core "1.10.1"]
                  [buddy/buddy-hashers "1.8.1"]
                  [clj-http "3.12.3"]
+                 [clojure.java-time "0.3.3"]
                  [com.layerware/hugsql "0.5.1"]
                  [com.stuartsierra/component "1.0.0"]
                  [hikari-cp "2.13.0"]

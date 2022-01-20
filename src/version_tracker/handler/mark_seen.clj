@@ -14,7 +14,7 @@
                     nil))
         storage (storage/storage request)]
     (if-not repo-id
-      {:status 400}
+      {:status 400, :body {:message "Repo ID must be a valid UUID."}}
       (do
         (user/mark-repo-seen storage user-id repo-id)
         {:status 200}))))

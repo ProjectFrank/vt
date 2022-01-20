@@ -13,11 +13,11 @@
         {:keys [username password github_token]} json-params
         valid? (not (s/check SignupRequest json-params))]
     (if-not valid?
-      {:status 400}
+      {:status 400, :body {:message "Invalid request body."}}
       (let [result (user/create-user! storage
                                       username
                                       password
                                       github_token)]
         (if (= ::user/created result)
           {:status 200}
-          {:status 400 :body "User exists"})))))
+          {:status 400, :body {:message "User by that username exists."}})))))

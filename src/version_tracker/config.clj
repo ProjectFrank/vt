@@ -13,8 +13,12 @@
 (s/def GitHub
   {:base-url s/Str})
 
+(defn- valid-key? [s]
+  ;; 16 byte hex string
+  (some? (re-matches #"[0-9,a-f,A-F]{32}" s)))
+
 (s/def Crypto
-  {:key s/Str})
+  {:key (s/constrained s/Str valid-key?)})
 
 (s/def Config
   {:webserver {:port s/Num}

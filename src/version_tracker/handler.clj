@@ -1,5 +1,6 @@
 (ns version-tracker.handler
   (:require [cheshire.generate :as json-generate]
+            [clojure.tools.logging :as log]
             [reitit.ring :as router]
             [ring.middleware.basic-authentication :as ring-basic]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
@@ -54,19 +55,19 @@
 (s/defn handler [github-client :- Client]
   (router/ring-handler (router github-client) default-handler))
 
-(defn wrap-print-exceptions
+(defn wrap-log-exceptions
   "Prints exceptions thrown by handler. Useful for debugging tests."
   [handler]
   (fn [request]
     (try
       (handler request)
       (catch Exception e
-        (println e)
+        (log/error e "Unhandled exception handling request.")
         (throw e)))))
 
 (s/defn app [github-client :- Client]
   (-> (handler github-client)
       json/wrap-json-response
       (json/wrap-json-params {:key-fn keyword})
-      wrap-print-exceptions
+      wrap-log-exceptions
       (wrap-defaults api-defaults)))

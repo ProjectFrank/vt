@@ -1,5 +1,6 @@
 (ns version-tracker.main
-  (:require [com.stuartsierra.component :as component]
+  (:require [clojure.tools.logging :as log]
+            [com.stuartsierra.component :as component]
             [schema.core :as s]
             [version-tracker.config :as config]
             [version-tracker.crypto :as crypto]
@@ -26,4 +27,5 @@
 
 (defn -main [& _args]
   (let [config (config/load-config)]
-    (component/start (system config))))
+    (component/start (system config)))
+  (log/info "Initialization complete."))

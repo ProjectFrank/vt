@@ -26,7 +26,7 @@ FROM tracked_repos
 WHERE github_id=:github-id AND user_id=:user-id
 
 -- :name find-tracked-repos* :? :*
-SELECT id, github_id, last_seen_release
+SELECT id, github_id, last_seen
 FROM tracked_repos
 WHERE user_id=:user-id
 
@@ -34,3 +34,8 @@ WHERE user_id=:user-id
 SELECT id
 FROM tracked_repos
 WHERE user_id = :user-id AND github_id = :github-id
+
+-- :name set-tracked-repo-seen* :! :n
+UPDATE tracked_repos
+SET last_seen=:seen-at
+WHERE user_id=:user-id AND id=:repo-id

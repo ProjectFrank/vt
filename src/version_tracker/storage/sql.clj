@@ -7,7 +7,8 @@
             [schema.core :as s]
             [version-tracker.config :as config]
             [version-tracker.crypto :as crypto]
-            [version-tracker.storage :as storage]))
+            [version-tracker.storage :as storage]
+            [version-tracker.util.time :as time-util]))
 
 (declare create-user*)
 (declare count-users*)
@@ -16,6 +17,7 @@
 (declare add-tracked-repo*)
 (declare find-tracked-repo*)
 (declare find-tracked-repos*)
+(declare set-tracked-repo-seen*)
 
 (hugsql/def-db-fns (io/resource "queries.sql"))
 
@@ -41,8 +43,16 @@
       (find-tracked-repo* this {:user-id user-id, :github-id github-id})))
   (-find-tracked-repos [this user-id]
     (->> (find-tracked-repos* this {:user-id user-id})
-         (mapv #(rename-keys % {:github_id :github-id
-                                :last_seen_release :last-seen}))))
+         (mapv #(-> %
+                    (rename-keys {:github_id :github-id
+                                  :last_seen :last-seen})
+                    (update :last-seen time-util/from-sql)))))
+  
+  (-set-tracked-repo-seen [this user-id repo-id seen-at]
+    (set-tracked-repo-seen* this {:seen-at (time-util/to-sql seen-at)
+                                  :repo-id repo-id
+                                  :user-id user-id})
+    nil)
 
   component/Lifecycle
   (start [this]

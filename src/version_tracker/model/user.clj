@@ -4,7 +4,8 @@
             [schema.core :as s]
             [version-tracker.crypto :as crypto]
             [version-tracker.release-client :as release-client]
-            [version-tracker.storage :as storage])
+            [version-tracker.storage :as storage]
+            [version-tracker.util.time :as time-util])
   (:import [java.time Instant]))
 
 (s/def Id s/Uuid)
@@ -89,3 +90,12 @@
                         ::last-seen (:last-seen storage-summary))
                  (dissoc :external-id))))
          (keys summaries-by-external-id))))
+
+(s/defn mark-repo-seen :- (s/eq nil)
+  [storage :- (s/protocol storage/Storage)
+   user-id :- Id
+   repo-id :- Id]
+  (storage/set-tracked-repo-seen storage
+                                 user-id
+                                 repo-id
+                                 (time-util/now)))

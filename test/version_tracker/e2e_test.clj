@@ -3,12 +3,14 @@
             [clj-http.client :as http]
             [clojure.data.json :as json]
             [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
+            [java-time :as time]
+            [version-tracker.crypto :as crypto]
             [version-tracker.fakes.fake-github :as fake-github]
             [version-tracker.model.user :as user]
             [version-tracker.test-utils :as test-utils]
-            [clojure.string :as str]
-            [version-tracker.crypto :as crypto]))
+            [version-tracker.util.time :as time-util]))
 
 (use-fixtures :once test-utils/schema-validation-fixture)
 
@@ -68,41 +70,15 @@
                                    :throw-exceptions false})]
           (is (= 400 (:status resp))))))))
 
-(deftest track-repo-test
+(deftest happy-path
   (test-utils/with-system system
     (let [url (str (base-url system) "/repos")
           username "foo"
           password "bar"
-          payload (json/write-str {:owner "microsoft"
-                                   :repo_name "vscode"})]
-      (signup system username password fake-github/good-token)
-      (testing "first time tracking"
-        (let [resp (http/post url {:body payload
-                                   :content-type :json
-                                   :throw-exceptions false
-                                   :basic-auth [username password]})
-              db-repo (first (jdbc/query (:storage system)
-                                         [(str/join "\n"
-                                                    ["SELECT tracked_repos.id, tracked_repos.github_id"
-                                                     "FROM tracked_repos"
-                                                     "JOIN users ON tracked_repos.user_id = users.id"
-                                                     "WHERE tracked_repos.github_id = ?"
-                                                     "      AND users.username = ?"])
-                                          fake-github/repo-github-id
-                                          username]))]
-          (is (= 200 (:status resp)))
-          (is (= {:id (str (:id db-repo))}
-                 (-> resp :body (json/read-str :key-fn keyword))))
-          (is (some? db-repo)))))))
-
-(deftest repo-summaries-test
-  (test-utils/with-system system
-    (let [url (str (base-url system) "/repos")
-          username "foo"
-          password "bar"]
+          stub-now (time/instant)]
       (signup system username password fake-github/good-token)
       
-      (testing "no repos tracked"
+      (testing "initial state"
         (let [resp (http/get url {:basic-auth [username password]
                                   :throw-exceptions false})]
           (is (= 200 (:status resp)))
@@ -112,9 +88,9 @@
                      (json/read-str :key-fn keyword))))))
       (testing "one repo tracked"
         (let [track-resp (http/post url {:body (json/write-str {:owner "microsoft"
-                                                                   :repo_name "vscode"})
-                                            :content-type :json
-                                            :throw-exceptions false
+                                                                :repo_name "vscode"})
+                                         :content-type :json
+                                         :throw-exceptions false
                                          :basic-auth [username password]})
               repo-id (-> track-resp :body (json/read-str :key-fn keyword) :id)]
           (is (= 200 (:status track-resp)))
@@ -131,18 +107,29 @@
                               :date "2021-12-16T17:51:28Z"}}]}
                    (-> resp
                        :body
-                       (json/read-str :key-fn keyword))))))))))
+                       (json/read-str :key-fn keyword)))))
+
+          (testing "marking seen"
+            (with-redefs [time-util/now (constantly stub-now)]
+              (let [mark-resp (http/post (format "%s/repos/%s/mark-seen"
+                                                 (base-url system)
+                                                 repo-id)
+                                         {:basic-auth [username password]})]
+                (is (= 200 (:status mark-resp)))
+                (let [resp (http/get url {:basic-auth [username password]
+                                          :throw-exceptions false})]
+                  (is (= 200 (:status resp)))
+                  (is (= (str stub-now)
+                         (-> resp
+                             :body
+                             (json/read-str :key-fn keyword)
+                             :items
+                             first
+                             :last_seen))
+                      "last_seen is updated"))))))))))
 
 (deftest not-found-test
   (test-utils/with-system system
     (let [url (str (base-url system) "/invalid")
           resp (http/get url {:throw-exceptions false})]
       (is (= 404 (:status resp))))))
-
-#_(deftest mark-seen-test
-  (test-utils/with-system system
-    (let [url (str (base-url system) "/repos")
-          username "foo"
-          password "bar"]
-      (signup system username password fake-github/good-token)
-      )))

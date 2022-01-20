@@ -1,6 +1,7 @@
 (ns version-tracker.storage.sql-test
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.test :refer [deftest is testing use-fixtures]]
+            [java-time :as time]
             [version-tracker.crypto :as crypto]
             [version-tracker.storage :as storage]
             [version-tracker.test-utils :as test-utils]))
@@ -64,3 +65,25 @@
                      :id (:id result)
                      :last-seen nil}]
                    (storage/find-tracked-repos storage user-id)))))))))
+
+(deftest set-tracked-repo-seen
+  (test-utils/with-sql-storage storage
+    (let [username "foo"
+          _ (storage/create-user! storage username "bar" "token")
+          {user-id :id} (storage/find-user storage username)
+          _ (is (some? user-id))
+          github-id "github-id"
+          {repo-id :id} (storage/add-tracked-repo storage user-id github-id)
+          seen-at (time/instant "2021-01-01T01:23:45.678Z")]
+      (is (= [{:id repo-id
+               :github-id github-id
+               :last-seen nil}]
+             (storage/find-tracked-repos storage user-id)))
+      (is (nil? (storage/set-tracked-repo-seen storage
+                                               user-id
+                                               repo-id
+                                               seen-at)))
+      (is (= [{:id repo-id
+               :github-id github-id
+               :last-seen seen-at}]
+             (storage/find-tracked-repos storage user-id))))))

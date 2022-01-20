@@ -15,7 +15,8 @@
   (-user-exists? [_this username])
   (-find-user [_this username])
   (-add-tracked-repo [_this user-id github-id])
-  (-find-tracked-repos [_this user-id]))
+  (-find-tracked-repos [_this user-id])
+  (-set-tracked-repo-seen [_this user-id repo-id seen-at]))
 
 (s/def Store (s/protocol Storage))
 
@@ -54,3 +55,10 @@
   [store :- Store
    user-id :- s/Uuid]
   (-find-tracked-repos store user-id))
+
+(s/defn set-tracked-repo-seen :- (s/eq nil)
+  [store :- Store
+   user-id :- s/Uuid
+   repo-id :- s/Uuid
+   seen-at :- Instant]
+  (-set-tracked-repo-seen store user-id repo-id seen-at))
